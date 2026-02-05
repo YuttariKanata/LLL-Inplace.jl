@@ -4,6 +4,13 @@
 using Base.MPFR: libmpfr, MPFRRoundNearest, MPFRRoundingMode, CdoubleMax
 using Base.GMP: libgmp, CulongMax
 
+const bighalf = BigFloat(1)/2
+const mbighalf = -BigFloat(1)/2
+const Clong_0 = Clong(0)
+const Culong_0 = Culong(0)
+const Culong_1 = Culong(1)
+const mpfrRN = MPFRRoundNearest
+
 @inline function mpfr_set(rop::BigFloat , op::BigFloat, rnd::MPFRRoundingMode)::Int32
     ccall((:mpfr_set, libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, MPFRRoundingMode), rop, op, rnd)
 end
@@ -146,13 +153,6 @@ end
         mpfr_set_ui(mu[i,i], Culong_1, mpfrRN)
     end
 end
-
-const bighalf = BigFloat(1)/2
-const mbighalf = -BigFloat(1)/2
-const Clong_0 = Clong(0)
-const Culong_0 = Culong(0)
-const Culong_1 = Culong(1)
-const mpfrRN = MPFRRoundNearest
 
 function LLL5(x::Vector{BigFloat},C::BigInt,delta::BigFloat=BigFloat(3)/4,maxiter=10^6)
     
@@ -339,3 +339,4 @@ function LLL5(x::Vector{BigFloat},C::BigInt,delta::BigFloat=BigFloat(3)/4,maxite
     end
     return b_int, b_real, iter
 end
+
