@@ -1,5 +1,7 @@
 # LLL-Inplace.jl
 
+(以下Gemini要約)
+
 Juliaの標準的な `BigFloat` 演算は計算のたびに新しいオブジェクトを生成するため、LLLアルゴリズムのような反復計算ではGC（ガベージコレクション）がボトルネックになります。
 
 この実装は、`libmpfr` と `libgmp` の関数を `ccall` で直接叩き、メモリを破壊的に再利用（In-place mutation）することで、GCのオーバーヘッドを極限まで排除した爆速のLLL実装です。
