@@ -147,16 +147,6 @@ const Clong_0 = Clong(0)
 const Culong_1 = Culong(1)
 const mpfrRN = MPFRRoundNearest
 
-# 256bit 10^38 n=15
-# BenchmarkTools.Trial: 1110 samples with 1 evaluation per sample.
-#  Range (min … max):  4.194 ms …  25.095 ms  ┊ GC (min … max): 0.00% … 41.12%
-#  Time  (median):     4.470 ms               ┊ GC (median):    0.00%
-#  Time  (mean ± σ):   4.504 ms ± 941.217 μs  ┊ GC (mean ± σ):  0.59% ±  2.30%
-#
-# BenchmarkTools.Trial: 1125 samples with 1 evaluation per sample.
-#  Range (min … max):  4.187 ms …  24.089 ms  ┊ GC (min … max): 0.00% … 42.79%
-#  Time  (median):     4.383 ms               ┊ GC (median):    0.00%
-#  Time  (mean ± σ):   4.443 ms ± 947.245 μs  ┊ GC (mean ± σ):  0.59% ±  2.25%
 function LLL5(x::Vector{BigFloat},C::BigInt,delta::BigFloat=BigFloat(3)/4,maxiter=10^6)
     
     #@assert delta > BigFloat(1)/4 && delta < one(BigFloat) "LLL requires 1/4 < delta < 1"
@@ -343,14 +333,3 @@ function LLL5(x::Vector{BigFloat},C::BigInt,delta::BigFloat=BigFloat(3)/4,maxite
     return b_int, b_real, iter
 end
 
-using Random
-using BenchmarkTools
-
-Random.seed!(1234)
-
-setprecision(256)
-
-
-x = rand(BigFloat,15)
-n = lastindex(x)
-C = big(10)^38
