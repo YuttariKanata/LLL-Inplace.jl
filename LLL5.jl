@@ -1,3 +1,6 @@
+# LLL-Inplace.jl: Optimized LLL algorithm using direct MPFR/GMP ccalls.
+# This code bypasses Julia's standard arithmetic to minimize GC pressure.
+
 using Base.MPFR: libmpfr, MPFRRoundNearest, MPFRRoundingMode, CdoubleMax
 using Base.GMP: libgmp, CulongMax
 
@@ -40,7 +43,7 @@ end
 @inline function mpfr_mul_z(rop::BigFloat, op1::BigFloat, op2::BigInt, rnd::MPFRRoundingMode)::Int32
     ccall((:mpfr_mul_z, libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Ref{BigInt}, MPFRRoundingMode), rop, op1, op2, rnd)
 end
-@inline function mpfr_mul_2ui(rop::BigFloat, op1::BigFloat, op2::UInt32, rnd::MPFRRoundingMode)::Int32
+@inline function mpfr_mul_2ui(rop::BigFloat, op1::BigFloat, op2::CulongMax, rnd::MPFRRoundingMode)::Int32
     ccall((:mpfr_mul_2ui, libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, MPFRRoundingMode), rop, op1, op2, rnd)
 end
 @inline function mpfr_fma(rop::BigFloat, op1::BigFloat, op2::BigFloat, op3::BigFloat, rnd::MPFRRoundingMode)::Int32
@@ -61,6 +64,9 @@ end
 @inline function mpfr_div(rop::BigFloat, op1::BigFloat, op2::BigFloat, rnd::MPFRRoundingMode)::Int32
     ccall((:mpfr_div, libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Ref{BigFloat}, MPFRRoundingMode), rop, op1, op2, rnd)
 end
+@inline function mpz_set_ui(rop::BigInt, op::CulongMax)
+    ccall((:__gmpz_set_ui, libgmp), Cvoid, (Ref{BigInt}, Culong), rop, op)
+end
 @inline function mpz_swap(rop1::BigInt, rop2::BigInt)
     ccall((:__gmpz_swap, libgmp), Cvoid, (Ref{BigInt}, Ref{BigInt}), rop1, rop2)
 end
@@ -78,19 +84,19 @@ end
 end
 
 function dot!(rop::BigFloat, bi::AbstractVector{BigFloat}, bj::AbstractVector{BigFloat})
-    mpfr_set_ui(rop,Culong(0),mpfrRN)
+    mpfr_set_ui(rop, Culong_0, mpfrRN)
     @inbounds for k in eachindex(bi,bj)
         mpfr_fma(rop, bi[k], bj[k], rop, mpfrRN)
     end
 end
 function norm2!(rop::BigFloat, b::AbstractVector{BigFloat})
-    mpfr_set_ui(rop,Culong(0),mpfrRN)
+    mpfr_set_ui(rop, Culong_0, mpfrRN)
     @inbounds for k in eachindex(b)
         mpfr_fma(rop, b[k], b[k], rop, mpfrRN)
     end
 end
 
-function GSO3!(mu::Matrix{BigFloat},Bs::Vector{BigFloat}, b_int::Matrix{BigInt}, b_real::Vector{BigFloat})
+@inline function GSO3!(mu::Matrix{BigFloat},Bs::Vector{BigFloat}, b_int::Matrix{BigInt}, b_real::Vector{BigFloat})
 
     n = size(b_int, 1)
     b =[BigFloat(0) for i in 1:n, j in 1:n+1]     # GSOのため一度だけMatrix{BigFloat}に戻す
@@ -137,13 +143,14 @@ function GSO3!(mu::Matrix{BigFloat},Bs::Vector{BigFloat}, b_int::Matrix{BigInt},
             mpfr_set(bs[i,j], bsi[j], mpfrRN)
         end
         norm2!(Bs[i],bsi)
-        mpfr_set_ui(mu[i,i], Culong(1), mpfrRN)
+        mpfr_set_ui(mu[i,i], Culong_1, mpfrRN)
     end
 end
 
 const bighalf = BigFloat(1)/2
 const mbighalf = -BigFloat(1)/2
 const Clong_0 = Clong(0)
+const Culong_0 = Culong(0)
 const Culong_1 = Culong(1)
 const mpfrRN = MPFRRoundNearest
 
@@ -167,8 +174,8 @@ function LLL5(x::Vector{BigFloat},C::BigInt,delta::BigFloat=BigFloat(3)/4,maxite
     b_real = [BigFloat() for i in 1:n]  # b[i,n+1]
 
     for i in 1:n
-        b_int[i,i] = 1
-        b_real[i]  = C*x[i]
+        mpz_set_ui(b_int[i,i],Culong_1)
+        mpfr_mul_z(b_real[i], x[i], C, mpfrRN)
     end
 
     mu = [BigFloat(0) for i in 1:n, j in 1:n]
@@ -332,4 +339,3 @@ function LLL5(x::Vector{BigFloat},C::BigInt,delta::BigFloat=BigFloat(3)/4,maxite
     end
     return b_int, b_real, iter
 end
-
